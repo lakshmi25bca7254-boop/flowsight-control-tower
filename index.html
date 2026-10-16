@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowSight — Hospital Patient-Flow Intelligence & Control Tower</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+
+  <!-- Top Navigation Header (NorthStar Health & Foresight ER Inspired) -->
+  <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 lg:px-6 py-2.5 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand & Project Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+          +
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">FlowSight</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">Control Tower</span>
+            <span class="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium ml-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 status-dot"></span>
+              Chronological Model Live
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 font-medium">Hospital Patient-Flow Intelligence • The Forgotten Patient</p>
+        </div>
+      </div>
+
+      <!-- Controls & Metadata -->
+      <div class="flex items-center gap-3">
+        <!-- Date Period Pill -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-600 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">
+          <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span>FY 2025 (8,000 Encounters)</span>
+        </div>
+
+        <!-- Clock -->
+        <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-mono-numbers text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span id="live-clock">--:--:--</span>
+        </div>
+
+        <!-- Alerts Quick Trigger -->
+        <button onclick="switchTab('investigate')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 transition">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-500"></i>
+          <span id="header-alert-count">Active Alerts</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button id="theme-toggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Toggle Dark/Light Mode">
+          <i data-lucide="moon" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <div class="max-w-7xl mx-auto mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-1 overflow-x-auto pb-1 text-xs font-semibold scrollbar-none">
+      <button data-tab="overview" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Overview
+      </button>
+      <button data-tab="investigate" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-500"></i> Investigate First & Alerts
+      </button>
+      <button data-tab="bottlenecks" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="git-merge" class="w-3.5 h-3.5"></i> Bottlenecks & Heatmap
+      </button>
+      <button data-tab="forecasting" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Demand Forecast (ML)
+      </button>
+      <button data-tab="wait-time-ml" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="clock-alert" class="w-3.5 h-3.5"></i> Wait Prediction & ML
+      </button>
+      <button data-tab="journeys" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="route" class="w-3.5 h-3.5"></i> Patient Journeys
+      </button>
+      <button data-tab="diagnostics" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Diagnostic Tests
+      </button>
+      <button data-tab="continuity" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="users" class="w-3.5 h-3.5"></i> Repeat Visits & Clusters
+      </button>
+      <button data-tab="fairness" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="scale" class="w-3.5 h-3.5"></i> Access & Fairness
+      </button>
+      <button data-tab="simulator" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="sliders" class="w-3.5 h-3.5"></i> What-If Simulator
+      </button>
+      <button data-tab="audit" class="px-3 py-1.5 rounded-lg transition whitespace-nowrap flex items-center gap-1.5">
+        <i data-lucide="file-check-2" class="w-3.5 h-3.5"></i> Data Quality Audit
+      </button>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div id="app-loading" class="flex-1 flex items-center justify-center p-8">
+    <div class="text-center space-y-3">
+      <div class="w-10 h-10 border-4 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="text-sm font-semibold text-slate-500">Initializing FlowSight Intelligence Engine...</p>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <main id="app-content" class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 space-y-6 hidden">
+
+    <!-- ================================================================= -->
+    <!-- VIEW 1: OVERVIEW DASHBOARD (NorthStar Health & Foresight ER)     -->
+    <!-- ================================================================= -->
+    <div id="view-overview" class="tab-view space-y-6">
+      
+      <!-- Top Alert Notice -->
+      <div class="bg-gradient-to-r from-sky-900 to-indigo-900 text-white rounded-2xl p-4 lg:p-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-400 text-slate-950 uppercase tracking-wider">Decision Support System</span>
+            <span class="text-xs text-sky-200">Dataset: 8,000 Encounters across 12 Hospital Departments</span>
+          </div>
+          <h2 class="text-lg lg:text-xl font-bold tracking-tight">Executive Patient-Flow Control Tower</h2>
+          <p class="text-xs text-sky-100 max-w-2xl leading-relaxed">
+            Real-time operational monitoring combining arrival telemetry, diagnostic turnaround, and machine learning delay forecasting. Helps care teams eliminate hidden patient delays.
+          </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="switchTab('investigate')" class="px-4 py-2 rounded-xl bg-white text-sky-900 hover:bg-sky-50 font-bold text-xs shadow transition flex items-center gap-1.5">
+            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i> What Should We Investigate?
+          </button>
+        </div>
+      </div>
+
+      <!-- Top Metric KPI Cards (NorthStar Health Style) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Card 1: Encounters & Patients -->
+        <div class="metric-card bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Total Encounters</span>
+            <i data-lucide="activity" class="w-4 h-4 text-sky-500"></i>
+          </div>
+          <div id="kpi-encounters" class="text-2xl font-black font-mono-numbers text-slate-800 dark:text-slate-100">8,000</div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span>Unique Patients:</span>
+            <span id="kpi-unique-patients" class="font-bold text-slate-700 dark:text-slate-300">2,000</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Waiting Time -->
+        <div class="metric-card bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Average Waiting Time</span>
+            <i data-lucide="clock" class="w-4 h-4 text-rose-500"></i>
+          </div>
+          <div id="kpi-avg-wait" class="text-2xl font-black font-mono-numbers text-rose-600">52.0 min</div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span id="kpi-median-wait">Median: 51.0 min</span>
+            <span class="text-rose-500 font-semibold">P90: 82m</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Service Duration -->
+        <div class="metric-card bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Average Service Duration</span>
+            <i data-lucide="stethoscope" class="w-4 h-4 text-emerald-500"></i>
+          </div>
+          <div id="kpi-service-time" class="text-2xl font-black font-mono-numbers text-slate-800 dark:text-slate-100">47.7 min</div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span>Avg Total LOS:</span>
+            <span id="kpi-los" class="font-bold text-slate-700 dark:text-slate-300">2.41 hrs</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Highest Wait Dept -->
+        <div class="metric-card bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Highest Average Wait</span>
+            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>
+          </div>
+          <div id="kpi-highest-wait-dept" class="text-xl font-black text-amber-600 truncate">Pediatrics</div>
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span>Left Before Care:</span>
+            <span id="kpi-lbc" class="font-bold text-rose-600">242 (3.0%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient Flow Stage Pipeline (DataFlip & HealthVista Style) -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Patient Flow Journey Pipeline (Median Durations)</h3>
+          <span class="text-[11px] text-slate-400">End-to-end average: <strong class="text-slate-700 dark:text-slate-200">2.41 hours LOS</strong></span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs">
+          <!-- Step 1 -->
+          <div class="p-3 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-900/60">
+            <span class="text-slate-400 text-[10px] uppercase font-bold block">1. Arrival & Triage</span>
+            <div id="pipe-stage1" class="text-lg font-bold font-mono-numbers text-sky-700 dark:text-sky-300 my-0.5">14.5m</div>
+            <span class="text-[10px] text-slate-500">Initial intake</span>
+          </div>
+          <!-- Step 2 -->
+          <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/60">
+            <span class="text-slate-400 text-[10px] uppercase font-bold block">2. Triage to Consultation</span>
+            <div id="pipe-stage2" class="text-lg font-bold font-mono-numbers text-amber-700 dark:text-amber-300 my-0.5">51.0m</div>
+            <span class="text-[10px] text-amber-600 font-semibold">Primary Bottleneck</span>
+          </div>
+          <!-- Step 3 -->
+          <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60">
+            <span class="text-slate-400 text-[10px] uppercase font-bold block">3. Treatment & Clinical</span>
+            <div id="pipe-stage3" class="text-lg font-bold font-mono-numbers text-emerald-700 dark:text-emerald-300 my-0.5">46.0m</div>
+            <span class="text-[10px] text-slate-500">Active care duration</span>
+          </div>
+          <!-- Step 4 -->
+          <div class="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60">
+            <span class="text-slate-400 text-[10px] uppercase font-bold block">4. Final Discharge</span>
+            <div id="pipe-stage4" class="text-lg font-bold font-mono-numbers text-indigo-700 dark:text-indigo-300 my-0.5">2.41h</div>
+            <span class="text-[10px] text-slate-500">5,685 discharged safely</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Grid: ED Volume Trend + Outcomes Donut + Insights Drawer -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Chart: Volume & Wait Trend -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Daily Encounter Volume and Average Wait Trend</h3>
+              <p class="text-xs text-slate-400">Daily arrivals paired with average wait time (recent 14 days sample)</p>
+            </div>
+            <button onclick="switchTab('forecasting')" class="text-xs font-semibold text-sky-600 hover:underline">View 30-Day Forecast &rarr;</button>
+          </div>
+          <div class="chart-container h-64">
+            <canvas id="chart-ed-volume-wait"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart: Outcomes Donut -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Encounter Outcomes Breakdown</h3>
+            <p class="text-xs text-slate-400">Total 8,000 recorded visits</p>
+          </div>
+          <div class="chart-container h-48">
+            <canvas id="chart-outcomes-donut"></canvas>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div><span class="text-slate-400">Admitted:</span> <strong id="kpi-admitted" class="font-mono-numbers">1,646</strong></div>
+            <div><span class="text-slate-400">Discharged:</span> <strong id="kpi-discharged" class="font-mono-numbers">5,685</strong></div>
+            <div><span class="text-slate-400">Transferred:</span> <strong id="kpi-transferred" class="font-mono-numbers">427</strong></div>
+            <div><span class="text-rose-600 font-semibold">Left Before Care:</span> <strong id="kpi-lbc-mini" class="font-mono-numbers">242</strong></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Row: Snapshot Table & AI Insights Drawer -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Snapshot Table -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Department Operational Snapshot</h3>
+              <p class="text-xs text-slate-400">Top departments by patient volume and queue status</p>
+            </div>
+            <button onclick="switchTab('bottlenecks')" class="text-xs font-semibold text-sky-600 hover:underline">View All 12 Departments &rarr;</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                  <th class="py-2.5 px-4">Department</th>
+                  <th class="py-2.5 px-4">Encounters</th>
+                  <th class="py-2.5 px-4">Avg Wait</th>
+                  <th class="py-2.5 px-4">Service</th>
+                  <th class="py-2.5 px-4">LBC %</th>
+                  <th class="py-2.5 px-4">Pressure</th>
+                  <th class="py-2.5 px-4">Priority Tier</th>
+                  <th class="py-2.5 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="table-overview-depts">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AI Insights & Warnings Panel (NorthStar Style) -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4 text-sky-500"></i>
+              <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Operational Insights</h3>
+            </div>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">Beta</span>
+          </div>
+          <div id="overview-insights-cards" class="space-y-3">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 2: INVESTIGATE FIRST & BOTTLENECK ALERTS                     -->
+    <!-- ================================================================= -->
+    <div id="view-investigate" class="tab-view space-y-6 hidden">
+      
+      <!-- Feature Header & Methodology Box -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 uppercase">Core Decision-Support Engine</span>
+              <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">"What Should We Investigate First?"</h2>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Converts multi-source operational metrics into an actionable <strong>Investigation Priority Score (0–100)</strong>. Ranked transparently with sample size and contributing root causes.
+            </p>
+          </div>
+          <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-600 dark:text-slate-300 font-mono-numbers">
+            Score = 35% Wait Concern + 25% Long-Wait Tail + 25% Left-Before-Care + 15% Workload Strain
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranked Department Cards -->
+      <div class="space-y-4">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Department Priority Rankings (Sorted by Highest Need for Review)</h3>
+        <div id="investigate-cards-container" class="space-y-3">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Active Bottleneck Alerts Feed -->
+      <div class="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Rules-Based Operational Alerts</h3>
+            <p class="text-xs text-slate-400">Automated triggers comparing current telemetry against hospital historical baselines</p>
+          </div>
+        </div>
+        <div id="alerts-feed-container" class="space-y-3">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 3: DEPARTMENT BOTTLENECKS & 24H x 7D MATRIX                  -->
+    <!-- ================================================================= -->
+    <div id="view-bottlenecks" class="tab-view space-y-6 hidden">
+      
+      <!-- Filters Bar -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">Filter Department:</label>
+          <select id="filter-bottleneck-dept" class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <!-- Injected via JavaScript -->
+          </select>
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300 ml-2">Visit Type:</label>
+          <select id="filter-bottleneck-type" class="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="ALL">All Visit Types</option>
+            <option value="Walk-in">Walk-in</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Emergency">Emergency</option>
+            <option value="Follow-up">Follow-up</option>
+          </select>
+        </div>
+        <div class="text-xs text-slate-400">
+          Viewing all 12 operational hospital departments
+        </div>
+      </div>
+
+      <!-- Full Comparison Table -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div>
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Comprehensive Department Benchmarking</h3>
+          <p class="text-xs text-slate-400">Comparing volume, waiting time percentiles, service times, and abandonment rates</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                <th class="py-2.5 px-4">Rank / Dept</th>
+                <th class="py-2.5 px-4">Service Type</th>
+                <th class="py-2.5 px-4">Encounters</th>
+                <th class="py-2.5 px-4">Avg Wait</th>
+                <th class="py-2.5 px-4">Median Wait</th>
+                <th class="py-2.5 px-4">P90 Wait</th>
+                <th class="py-2.5 px-4">Service Min</th>
+                <th class="py-2.5 px-4">LBC Rate</th>
+                <th class="py-2.5 px-4">Staff / Beds</th>
+                <th class="py-2.5 px-4">Priority Score</th>
+              </tr>
+            </thead>
+            <tbody id="table-bottlenecks-body">
+              <!-- Injected via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 24h x 7d Busiest Hours Heatmap Matrix (DataFlip / HealthVista Style) -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Encounters Hours Matrix: Identifying Peak Flow Periods</h3>
+            <p class="text-xs text-slate-400">24-hour arrival density matrix by day of the week with row margin totals</p>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span class="w-3 h-3 rounded bg-sky-100 border"></span> Light
+            <span class="w-3 h-3 rounded bg-sky-500 ml-1"></span> Moderate
+            <span class="w-3 h-3 rounded bg-sky-800 ml-1"></span> Heavy
+          </div>
+        </div>
+        <div id="heatmap-matrix-grid" class="space-y-0.5">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 4: DEMAND FORECASTING (ML)                                  -->
+    <!-- ================================================================= -->
+    <div id="view-forecasting" class="tab-view space-y-6 hidden">
+      
+      <!-- Model Metrics Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <span class="text-xs text-slate-400 block">Model Type</span>
+          <strong class="text-sm font-bold text-slate-800 dark:text-slate-100 block mt-1">Ridge Chronological Regressor</strong>
+          <span id="forecast-split" class="text-[10px] text-slate-500 block mt-0.5">Jan-Sep Train | Oct-Dec Test</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <span class="text-xs text-slate-400 block">Test MAE (Mean Absolute Error)</span>
+          <strong id="forecast-mae" class="text-2xl font-black font-mono-numbers text-emerald-600 block mt-0.5">0.955</strong>
+          <span class="text-[10px] text-emerald-500">Evaluated on unseen future dates</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <span class="text-xs text-slate-400 block">Test RMSE</span>
+          <strong id="forecast-rmse" class="text-2xl font-black font-mono-numbers text-slate-800 dark:text-slate-100 block mt-0.5">1.341</strong>
+          <span class="text-[10px] text-slate-400">Standard error bound</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <span class="text-xs text-slate-400 block">Historical Baseline MAE</span>
+          <strong id="forecast-base-mae" class="text-2xl font-black font-mono-numbers text-slate-500 block mt-0.5">0.957</strong>
+          <span class="text-[10px] text-slate-400">Dept-weekday rolling average</span>
+        </div>
+      </div>
+
+      <!-- Demand Forecast Line Chart -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div>
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">30-Day Chronological Test Evaluation: Actual Arrivals vs Forecast</h3>
+          <p class="text-xs text-slate-400">Comparing real ground truth arrivals on unseen test dates against ML predictions with 95% confidence intervals</p>
+        </div>
+        <div class="chart-container h-80">
+          <canvas id="chart-demand-forecast"></canvas>
+        </div>
+      </div>
+
+      <!-- Peak Demand Advisory -->
+      <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+        <div class="space-y-1">
+          <h4 class="font-bold text-amber-900 dark:text-amber-200">Predicted Peak Demand Periods</h4>
+          <p class="text-amber-800 dark:text-amber-300 leading-relaxed">
+            The demand model highlights that <strong>Mondays and Fridays between 09:00 AM and 12:00 PM</strong> consistently experience a +28% surge above baseline across Emergency, Laboratory, and Outpatient clinics. Advance staffing adjustments during these hours are recommended.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 5: WAIT TIME ML & LONG-WAIT CLASSIFIER                       -->
+    <!-- ================================================================= -->
+    <div id="view-wait-time-ml" class="tab-view space-y-6 hidden">
+      
+      <!-- Model Metrics Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Wait Time Regressor Card -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Wait-Time Regressor Performance</h3>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold">Random Forest</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold">Test MAE</span>
+              <strong id="wait-model-mae" class="text-xl font-black font-mono-numbers text-emerald-600">14.06m</strong>
+            </div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold">Baseline MAE</span>
+              <strong id="wait-model-baseline" class="text-xl font-black font-mono-numbers text-slate-500">19.60m</strong>
+            </div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold">Improvement</span>
+              <strong class="text-xl font-black font-mono-numbers text-sky-600">+28.3%</strong>
+            </div>
+          </div>
+          <div class="chart-container h-48">
+            <canvas id="chart-feature-importance"></canvas>
+          </div>
+        </div>
+
+        <!-- Long-Wait Binary Classifier (>60 min) -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Long-Wait Classifier (> 60 min Wait)</h3>
+            <span class="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 font-bold">ROC-AUC: <span id="lw-auc">0.829</span></span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <span class="text-[10px] text-slate-400 block uppercase">Precision</span>
+              <strong id="lw-precision" class="text-base font-bold font-mono-numbers text-slate-800 dark:text-slate-100">72.1%</strong>
+            </div>
+            <div class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <span class="text-[10px] text-slate-400 block uppercase">Recall</span>
+              <strong id="lw-recall" class="text-base font-bold font-mono-numbers text-slate-800 dark:text-slate-100">66.2%</strong>
+            </div>
+            <div class="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <span class="text-[10px] text-slate-400 block uppercase">F1-Score</span>
+              <strong id="lw-f1" class="text-base font-bold font-mono-numbers text-slate-800 dark:text-slate-100">0.690</strong>
+            </div>
+          </div>
+
+          <!-- Confusion Matrix Table -->
+          <div class="space-y-1">
+            <span class="text-xs font-semibold text-slate-400 block">Test Set Confusion Matrix (2,020 unseen test encounters):</span>
+            <div class="grid grid-cols-2 gap-2 text-xs text-center">
+              <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900">
+                <span class="text-[10px] text-slate-400 block">True Negative (Wait &le; 60m)</span>
+                <strong id="cm-tn" class="text-lg font-mono-numbers text-emerald-700 dark:text-emerald-300">1,056</strong>
+              </div>
+              <div class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900">
+                <span class="text-[10px] text-slate-400 block">False Positive (False Alarm)</span>
+                <strong id="cm-fp" class="text-lg font-mono-numbers text-rose-700 dark:text-rose-300">197</strong>
+              </div>
+              <div class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900">
+                <span class="text-[10px] text-slate-400 block">False Negative (Missed Long Wait)</span>
+                <strong id="cm-fn" class="text-lg font-mono-numbers text-amber-700 dark:text-amber-300">259</strong>
+              </div>
+              <div class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900">
+                <span class="text-[10px] text-slate-400 block">True Positive (Flagged Long Wait)</span>
+                <strong id="cm-tp" class="text-lg font-mono-numbers text-emerald-700 dark:text-emerald-300">508</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Live Interactive Prediction Sandbox -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Live Waiting-Time Prediction Sandbox</h3>
+            <p class="text-xs text-slate-400">Simulate expected patient wait at the moment of arrival using operational input features</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <!-- Input 1: Dept -->
+          <div>
+            <label class="text-xs font-semibold text-slate-500 block mb-1">Department</label>
+            <select id="sandbox-dept" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2"></select>
+          </div>
+          <!-- Input 2: Visit Type -->
+          <div>
+            <label class="text-xs font-semibold text-slate-500 block mb-1">Visit Type</label>
+            <select id="sandbox-visit" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2">
+              <option value="Walk-in">Walk-in</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Follow-up">Follow-up</option>
+            </select>
+          </div>
+          <!-- Input 3: Triage -->
+          <div>
+            <label class="text-xs font-semibold text-slate-500 block mb-1">Triage Acuity Level</label>
+            <select id="sandbox-triage" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2">
+              <option value="Low">Low (Non-urgent)</option>
+              <option value="Medium" selected>Medium (Standard)</option>
+              <option value="High">High (Urgent)</option>
+              <option value="Critical">Critical (Immediate)</option>
+            </select>
+          </div>
+          <!-- Input 4: Hour -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+              <span>Arrival Hour</span>
+              <span id="sandbox-hour-val" class="font-mono-numbers">12:00</span>
+            </div>
+            <input id="sandbox-hour" type="range" min="0" max="23" value="12" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+          </div>
+          <!-- Input 5: Age -->
+          <div>
+            <label class="text-xs font-semibold text-slate-500 block mb-1">Patient Age</label>
+            <input id="sandbox-age" type="number" min="1" max="100" value="45" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2">
+          </div>
+        </div>
+
+        <!-- Output Banner -->
+        <div class="p-4 rounded-xl bg-gradient-to-r from-sky-50 to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-sky-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="p-3 rounded-xl bg-sky-600 text-white">
+              <i data-lucide="calculator" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <span class="text-xs text-slate-400 block uppercase font-bold">Predicted Expected Wait</span>
+              <div id="sandbox-predicted-wait" class="text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">-- min</div>
+            </div>
+          </div>
+          <div class="space-y-1 text-right">
+            <span class="text-xs text-slate-400 block">Classified Wait Band:</span>
+            <div id="sandbox-risk-band">--</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 6: PATIENT JOURNEY EXPLORER                                  -->
+    <!-- ================================================================= -->
+    <div id="view-journeys" class="tab-view space-y-6 hidden">
+      
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Patient Journey Timeline Explorer</h3>
+          <p class="text-xs text-slate-400">Click any encounter to inspect sequential milestone timestamps and linked diagnostic tests</p>
+        </div>
+        <div class="w-full sm:w-64">
+          <input id="search-journey" type="text" placeholder="Search encounter, patient, dept..." class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Journeys Table -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                <th class="py-2.5 px-4">Encounter ID</th>
+                <th class="py-2.5 px-4">Patient</th>
+                <th class="py-2.5 px-4">Department</th>
+                <th class="py-2.5 px-4">Triage</th>
+                <th class="py-2.5 px-4">Visit Type</th>
+                <th class="py-2.5 px-4">Wait</th>
+                <th class="py-2.5 px-4">Service</th>
+                <th class="py-2.5 px-4">Outcome</th>
+                <th class="py-2.5 px-4 text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody id="table-journeys-body">
+              <!-- Injected via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 7: DIAGNOSTIC LAB & TEST MONITOR                             -->
+    <!-- ================================================================= -->
+    <div id="view-diagnostics" class="tab-view space-y-6 hidden">
+      
+      <!-- Notice Box on Discrepancy -->
+      <div class="p-4 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-3">
+        <i data-lucide="info" class="w-5 h-5 text-sky-600 shrink-0 mt-0.5"></i>
+        <div class="space-y-1">
+          <strong class="font-bold text-sky-900 dark:text-sky-200">Data Architecture Disclosure: Standalone Diagnostic Monitor</strong>
+          <p class="leading-relaxed">
+            In the provided synthetic dataset, diagnostic test order and completion timestamps reflect asynchronous laboratory tracking that operates decoupled from clinical encounter clocks. In accordance with data integrity guidelines, test turnarounds are monitored as a standalone diagnostic workflow.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Turnaround Chart -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Diagnostic Turnaround Time by Test Type</h3>
+          <div class="chart-container h-72">
+            <canvas id="chart-tests-turnaround"></canvas>
+          </div>
+        </div>
+
+        <!-- Turnaround Table by Priority -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Turnaround Breakdown (Urgent vs Routine)</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                  <th class="py-2 px-3">Test</th>
+                  <th class="py-2 px-3">Priority</th>
+                  <th class="py-2 px-3">Tests</th>
+                  <th class="py-2 px-3">Avg Mins</th>
+                  <th class="py-2 px-3">Median</th>
+                  <th class="py-2 px-3">P90</th>
+                </tr>
+              </thead>
+              <tbody id="table-diagnostics-body">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 8: REPEAT VISITS & CLUSTERING                                -->
+    <!-- ================================================================= -->
+    <div id="view-continuity" class="tab-view space-y-6 hidden">
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Repeat Visits Chart -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Patient Encounter Frequency</h3>
+            <p class="text-xs text-slate-400">Distribution across 2,000 unique patients</p>
+          </div>
+          <div class="chart-container h-56">
+            <canvas id="chart-repeat-visits"></canvas>
+          </div>
+        </div>
+
+        <!-- Notice -->
+        <div class="md:col-span-2 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Patient Continuity Guidelines</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            The dataset tracks repeat visits over a 12-month timeline. Crucially, the records do not contain scheduled follow-up dates or confirmed follow-up completion. Patients are therefore monitored strictly for longitudinal hospital contact frequency rather than labeled as "missed appointments."
+          </p>
+          <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs space-y-1">
+            <strong>Top Chronic Conditions with Multiple Visits:</strong>
+            <p class="text-slate-500">Hypertension (780 visits), Cardiac (742 visits), Diabetes (710 visits), Respiratory (680 visits).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- K-Means Operational Archetypes -->
+      <div class="space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Unsupervised Encounter Pattern Clusters (Operational Archetypes)</h3>
+        <div id="clustering-cards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 9: ACCESS & FAIRNESS LENS                                    -->
+    <!-- ================================================================= -->
+    <div id="view-fairness" class="tab-view space-y-6 hidden">
+      
+      <!-- Disclaimer Banner -->
+      <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-3">
+        <i data-lucide="scale" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+        <div class="space-y-1">
+          <strong class="font-bold">Observational Association Disclosure:</strong>
+          <p class="leading-relaxed">
+            Waiting times and outcomes across age, sex, insurance, and home area reflect descriptive statistical associations observed in synthetic data. They must not be interpreted as evidence of systemic prejudice, discrimination, or medical etiology.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Age Breakdown Chart -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Wait Times and Long Wait Proportions by Age Group</h3>
+          <div class="chart-container h-72">
+            <canvas id="chart-fairness-age"></canvas>
+          </div>
+        </div>
+
+        <!-- Insurance Breakdown Table -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Outcomes by Insurance Type</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                  <th class="py-2 px-3">Insurance</th>
+                  <th class="py-2 px-3">Encounters</th>
+                  <th class="py-2 px-3">Avg Wait</th>
+                  <th class="py-2 px-3">>60m Wait %</th>
+                  <th class="py-2 px-3">LBC Rate</th>
+                </tr>
+              </thead>
+              <tbody id="table-fairness-insurance">
+                <!-- Injected via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 10: WHAT-IF SCENARIO SIMULATOR                              -->
+    <!-- ================================================================= -->
+    <div id="view-simulator" class="tab-view space-y-6 hidden">
+      
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div>
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Interactive Capacity & Workload Pressure Simulator</h3>
+          <p class="text-xs text-slate-400">Adjust hypothetical staff allocation and daily intake capacity to model queue relief</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+          <!-- Select Dept -->
+          <div>
+            <label class="text-xs font-semibold text-slate-500 block mb-1">Target Department</label>
+            <select id="sim-dept-select" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5"></select>
+          </div>
+
+          <!-- Staff Slider -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+              <span>Adjust Staffing</span>
+              <span id="sim-staff-val" class="font-mono-numbers text-sky-600 font-bold">+0 Staff</span>
+            </div>
+            <input id="sim-staff-slider" type="range" min="-5" max="10" value="0" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            <span class="text-[10px] text-slate-400">Scale: -5 to +10 auxiliary staff</span>
+          </div>
+
+          <!-- Capacity Slider -->
+          <div>
+            <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+              <span>Adjust Daily Intake Capacity</span>
+              <span id="sim-cap-val" class="font-mono-numbers text-sky-600 font-bold">+0% Daily Cap</span>
+            </div>
+            <input id="sim-cap-slider" type="range" min="-30" max="50" step="5" value="0" class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer">
+            <span class="text-[10px] text-slate-400">Scale: -30% to +50% intake slots</span>
+          </div>
+        </div>
+
+        <!-- Simulation Comparison Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs">
+            <span class="text-slate-400 block mb-1">Department Staff</span>
+            <div class="flex justify-between items-baseline">
+              <span id="sim-base-staff" class="text-slate-500">--</span>
+              <strong id="sim-new-staff" class="text-base font-bold font-mono-numbers text-sky-600">--</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs">
+            <span class="text-slate-400 block mb-1">Daily Capacity</span>
+            <div class="flex justify-between items-baseline">
+              <span id="sim-base-cap" class="text-slate-500">--</span>
+              <strong id="sim-new-cap" class="text-base font-bold font-mono-numbers text-sky-600">--</strong>
+            </div>
+          </div>
+          <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs">
+            <span class="text-slate-400 block mb-1">Simulated Avg Wait</span>
+            <div class="flex justify-between items-baseline">
+              <span id="sim-base-wait" class="text-slate-500">--</span>
+              <strong id="sim-new-wait" class="text-base font-bold font-mono-numbers text-emerald-600">--</strong>
+            </div>
+            <span id="sim-wait-diff" class="text-[10px] block mt-0.5">--</span>
+          </div>
+          <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs">
+            <span class="text-slate-400 block mb-1">Workload Pressure Index</span>
+            <div class="flex justify-between items-baseline">
+              <span id="sim-base-pressure" class="text-slate-500">--</span>
+              <strong id="sim-new-pressure" class="text-base font-bold font-mono-numbers text-indigo-600">--</strong>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 italic">
+          Disclaimer: This module is an operational queue simulation tool, not a clinical forecast of staffing addition effects.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 11: DATA QUALITY MONITOR & AUDIT                             -->
+    <!-- ================================================================= -->
+    <div id="view-audit" class="tab-view space-y-6 hidden">
+      
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div>
+          <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">Dataset Validation & Quality Audit Report</h3>
+          <p class="text-xs text-slate-400">Automated verification of timestamp coherence, duration anomalies, and integrity constraints</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-400 block">Total Audited Records</span>
+            <strong id="audit-total-records" class="text-2xl font-black font-mono-numbers text-slate-800 dark:text-slate-100 block mt-1">8,000</strong>
+            <span class="text-[10px] text-emerald-600 font-semibold">&check; 100% complete records</span>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-400 block">Negative Durations Found</span>
+            <strong id="audit-negative" class="text-2xl font-black font-mono-numbers text-emerald-600 block mt-1">0</strong>
+            <span class="text-[10px] text-emerald-600 font-semibold">&check; No negative intervals</span>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-400 block">Missing Values</span>
+            <strong id="audit-missing" class="text-2xl font-black font-mono-numbers text-emerald-600 block mt-1">0</strong>
+            <span class="text-[10px] text-emerald-600 font-semibold">&check; No null fields</span>
+          </div>
+        </div>
+
+        <!-- Specific Anomaly Investigation: Left Before Care -->
+        <div class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 space-y-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-600"></i>
+            <h4 class="font-bold text-rose-900 dark:text-rose-200 text-xs">Flagged Data Inconsistency: "Left Before Care" Encounters</h4>
+          </div>
+          <p id="audit-lbc-desc" class="text-xs text-rose-800 dark:text-rose-300 leading-relaxed"></p>
+          <div class="text-xs text-rose-900 dark:text-rose-200 font-bold font-mono-numbers pt-1">
+            Impact: <span id="audit-lbc-count">--</span>
+          </div>
+        </div>
+
+        <!-- Methodology Principles -->
+        <div class="space-y-2 pt-2 text-xs text-slate-600 dark:text-slate-400">
+          <h4 class="font-bold text-slate-800 dark:text-slate-200">Ethical AI & Machine Learning Guardrails:</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Strict Chronological Split:</strong> Models are trained strictly on Jan–Sep 2025 and evaluated on future Q4 2025 data to eliminate lookahead bias.</li>
+            <li><strong>Decision Support vs Clinical Truth:</strong> All outputs are operational guidelines for queue management and do not provide medical diagnosis or treatment advice.</li>
+            <li><strong>Synthetic Data Disclosure:</strong> All charts and tables are derived from synthetic benchmark data created for Datathon 2026.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: PATIENT JOURNEY DETAIL                                     -->
+  <!-- ================================================================= -->
+  <div id="journey-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="modal-content bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div>
+          <span class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Patient Journey Timeline</span>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">
+            Encounter <span id="modal-enc-id" class="font-mono-numbers">--</span>
+          </h3>
+        </div>
+        <button onclick="closeJourneyModal()" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+        <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <span class="text-slate-400 text-[10px] block">Patient</span>
+          <strong id="modal-patient-id" class="font-mono-numbers">--</strong>
+        </div>
+        <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <span class="text-slate-400 text-[10px] block">Department</span>
+          <strong id="modal-dept">--</strong>
+        </div>
+        <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <span class="text-slate-400 text-[10px] block">Wait Time</span>
+          <strong id="modal-wait" class="font-mono-numbers text-rose-600">--</strong>
+        </div>
+        <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <span class="text-slate-400 text-[10px] block">Service Time</span>
+          <strong id="modal-service" class="font-mono-numbers text-emerald-600">--</strong>
+        </div>
+        <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+          <span class="text-slate-400 text-[10px] block">Outcome</span>
+          <strong id="modal-outcome" class="font-semibold text-slate-800 dark:text-slate-200">--</strong>
+        </div>
+      </div>
+      <div class="text-[11px] text-slate-400 flex justify-between px-1">
+        <span>Total Duration (LOS): <strong id="modal-los" class="font-mono-numbers text-slate-700 dark:text-slate-200">--</strong></span>
+      </div>
+
+      <!-- Patient Profile Summary -->
+      <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-[11px] text-slate-600 dark:text-slate-300">
+        <span id="modal-profile">--</span>
+      </div>
+
+      <!-- Sequential Milestone Timeline -->
+      <div class="space-y-2 pt-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Sequential Milestones</h4>
+        <div id="modal-timeline-events" class="pt-2">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Linked Diagnostic Tests -->
+      <div class="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Diagnostic Tests Ordered</h4>
+        <div id="modal-tests-list">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+
+      <div class="pt-3 text-right">
+        <button onclick="closeJourneyModal()" class="px-4 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold">
+          Close Window
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Inline Dataset Fallback (Guarantees zero CORS file:// issues) -->
+  <script src="data/dataset.js"></script>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+
+  <!-- Initialize Lucide Icons -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
